@@ -1,0 +1,28 @@
+[Unit]
+Description=Run the ArangoDB Starter 
+After=network.target
+
+[Service]
+LimitNOFILE=131072
+LimitNPROC=131072
+TasksMax=131072
+
+Restart=on-failure
+User=arangodb
+Group=arangodb
+
+ExecStart=/usr/bin/arangodb \
+	--starter.mode=activefailover \
+	--starter.data-dir=/var/lib/arangodb3/cluster \
+	--log.file=true \
+	--log.dir=/var/log/arangodb3/cluster \
+	--log.verbose \
+	--server.storage-engine=rocksdb \
+	--auth.jwt-secret=/etc/arangodb3/arangodb.secret \
+	--agents.agency.supervision-grace-period=30 \
+	--starter.join {% for host in groups['all'] %}{{ host }}{% if not loop.last %},{% endif %}{% endfor %}
+
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target

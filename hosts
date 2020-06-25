@@ -1,0 +1,5 @@
+[master]
+arangodb01 ansible_host=arangodb01
+[followers]
+arangodb02 ansible_host=arangodb02
+arangodb03 ansible_host=arangodb03

@@ -1,0 +1,100 @@
+---
+# tasks file for arangodb
+
+ - name: disable selinux
+   selinux:
+     state: disabled
+   notify: reboot_server
+
+ - name: flush handlers
+   meta: flush_handlers
+
+ - name: add ArangoDB repo
+   get_url:
+     url: https://download.arangodb.com/arangodb36/RPM/arangodb.repo
+     dest: /etc/yum.repos.d/
+
+ - name: install ArangoDB
+   yum:
+     name: arangodb3
+     state: present
+
+ - name: add firewall ports 5828-8531
+   firewalld:
+     zone: public
+     port: 5828-8531/tcp
+     permanent: yes
+     state: enabled
+   notify: reload_firewall
+
+ - name: flush handlers
+   meta: flush_handlers
+   
+ - name: create arangodb user group
+   group:
+     name: arangodb
+   
+ - name: create arangodb user
+   user:
+     name: arangodb
+     group: arangodb
+     system: yes
+
+ - name: create /var/lib/arangodb3/cluster dir
+   file:
+     path: /var/lib/arangodb3/cluster
+     owner: arangodb
+     group: arangodb
+     state: directory
+     mode: 0750
+     
+ - name: create /var/log/arangodb3/cluster dir
+   file:
+     path: /var/log/arangodb3/cluster
+     owner: arangodb
+     group: arangodb
+     state: directory
+     mode: 0755
+
+ - name: create ArangoDB service config file
+   template:
+     src: service_temlate.j2
+     dest: /usr/lib/systemd/system/arangodb.service
+     mode: 0644
+     owner: arangodb
+     group: arangodb
+     
+ - name: check ArangoDB secret
+   copy:
+     content: ""
+     dest: /etc/arangodb3/arangodb.secret
+     force: no
+     owner: arangodb
+     group: arangodb
+     mode: 0400
+   when: inventory_hostname in groups.master
+   notify: 
+     - start_arangodb3
+     - create_secret
+     - collect_secret
+     - stop_arangodb3
+   register: secret
+   
+ - name: flush handlers
+   meta: flush_handlers
+   
+ - name: distribute_secret
+   copy:
+     src: /tmp/arangodb.secret
+     dest: /etc/arangodb3/arangodb.secret
+     owner: arangodb
+     group: arangodb
+     mode: 0400
+   when: inventory_hostname in groups.followers
+     
+ - name: restart ArangoDB service
+   service:
+     name: arangodb
+     enabled: yes
+     state: restarted
+     daemon_reload: yes

@@ -1,0 +1,25 @@
+---
+# handlers file for arangodb
+
+ - name: reboot_server
+   reboot:
+   
+ - name: reload_firewall
+   service: name=firewalld state=restarted
+   
+ - name: start_arangodb3
+   service: name=arangodb3 state=started
+   
+ - name: create_secret
+   shell: "arangodb create jwt-secret --secret=/etc/arangodb3/arangodb.secret"
+   when: inventory_hostname in groups.master
+   
+ - name: collect_secret
+   fetch:
+     src: /etc/arangodb3/arangodb.secret
+     dest: /tmp/arangodb.secret
+     flat: yes
+   when: inventory_hostname in groups.master
+   
+ - name: stop_arangodb3
+   service: name=arangodb3 state=stopped
