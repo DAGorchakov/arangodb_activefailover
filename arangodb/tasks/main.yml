@@ -19,10 +19,18 @@
      name: arangodb3
      state: present
 
- - name: add firewall ports 5828-8531
+ - name: add firewall ports 8528-8531
    firewalld:
      zone: public
-     port: 5828-8531/tcp
+     port: 8528-8531/tcp
+     permanent: yes
+     state: enabled
+   notify: reload_firewall
+   
+ - name: add firewall ports 4000
+   firewalld:
+     zone: public
+     port: 4000/tcp
      permanent: yes
      state: enabled
    notify: reload_firewall
@@ -63,6 +71,21 @@
      mode: 0644
      owner: arangodb
      group: arangodb
+     
+ - name: prepare ArangoDB service config for master node
+   lineinfile:
+     path: /usr/lib/systemd/system/arangodb.service
+     backup: yes
+     state: absent
+     regexp: '--starter.join.*'
+   when: inventory_hostname in groups.master
+     
+ - name: allow all endpoints
+   lineinfile:
+     path: /etc/arangodb3/arangod.conf
+     backup: yes
+     regexp: 'endpoint = tcp://127.0.0.1:8529'
+     line: endpoint = tcp://0.0.0.0:8529
      
  - name: check ArangoDB secret
    copy:
