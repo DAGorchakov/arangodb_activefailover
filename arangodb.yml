@@ -1,5 +1,5 @@
 ---
-- name: install arangodb 
+- name: install arangodb cluster with starter 
   hosts: all
   become: yes
 
